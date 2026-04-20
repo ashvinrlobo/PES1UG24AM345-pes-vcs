@@ -67,7 +67,12 @@ int commit_parse(const void *data, size_t len, Commit *commit_out) {
     p = strchr(p, '\n') + 1;  // skip committer line
     p = strchr(p, '\n') + 1;  // skip blank line
 
-    snprintf(commit_out->message, sizeof(commit_out->message), "%s", p);
+    size_t msg_len = len - (p - (const char*)data);
+    if (msg_len >= sizeof(commit_out->message))
+        msg_len = sizeof(commit_out->message) - 1;
+
+    memcpy(commit_out->message, p, msg_len);
+    commit_out->message[msg_len] = '\0';
     return 0;
 }
 
@@ -94,11 +99,12 @@ int commit_serialize(const Commit *commit, void **data_out, size_t *len_out) {
                   commit->author, commit->timestamp,
                   commit->message);
 
-    *data_out = malloc(n + 1);
+    *data_out = malloc(n);
     if (!*data_out) return -1;
-    memcpy(*data_out, buf, n + 1);
+
+    memcpy(*data_out, buf, n);
     *len_out = (size_t)n;
-    return 0;
+        return 0;
 }
 
 // Walk commit history from HEAD to the root.
